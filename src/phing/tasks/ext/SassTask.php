@@ -21,6 +21,7 @@
  * @category Tasks
  * @package  phing.tasks.ext
  * @author   Paul Stuart <pstuart2@gmail.com>
+ * @author   Ken Guest <kguest@php.net>
  * @license  LGPL (see http://www.gnu.org/licenses/lgpl.html)
  */
 
@@ -31,7 +32,7 @@ require_once 'phing/Task.php';
 
 /**
  * Executes Sass for a particular fileset.
- * 
+ *
  * If the sass executable is not available, but scssphp is, then use that instead.
  *
  * @category Tasks
@@ -49,6 +50,11 @@ class SassTask extends Task
     protected $trace = false;
     protected $unixnewlines = true;
     protected $encoding = 'utf-8';
+    protected $loadPath = '';
+    protected $check = false;
+    protected $useSass = true;
+    protected $useScssphp = true;
+    protected $file = null;
 
     /**
      * Contains the path info of our file to allow us to parse.
@@ -154,6 +160,16 @@ class SassTask extends Task
     }
 
     /**
+     * Return name/path of sass executable.
+     *
+     * @return string
+     */
+    public function getExecutable()
+    {
+        return $this->executable;
+    }
+
+    /**
      * Sets the extfilter. Default: <none>
      *
      * This will filter the fileset to only process files that match
@@ -167,6 +183,16 @@ class SassTask extends Task
     public function setExtfilter($extfilter)
     {
         $this->extfilter = trim($extfilter, ' .');
+    }
+
+    /**
+     * Return extfilter setting.
+     *
+     * @return string
+     */
+    public function getExtfilter()
+    {
+        return $this->extfilter;
     }
 
     /**
@@ -186,6 +212,16 @@ class SassTask extends Task
     }
 
     /**
+     * Return flags to be used when running the sass executable.
+     *
+     * @return string
+     */
+    public function getFlags()
+    {
+        return trim($this->flags);
+    }
+
+    /**
      * Sets the removeoldext flag. Default: true
      *
      * This will cause us to strip the existing extension off the output
@@ -199,6 +235,16 @@ class SassTask extends Task
     public function setRemoveoldext($removeoldext)
     {
         $this->removeoldext = StringHelper::booleanValue($removeoldext);
+    }
+
+    /**
+     * Return removeoldext value (true/false)
+     *
+     * @return bool
+     */
+    public function getRemoveoldext()
+    {
+        return $this->removeoldext;
     }
 
     /**
@@ -224,6 +270,16 @@ class SassTask extends Task
     }
 
     /**
+     * Return the output encoding.
+     *
+     * @return string
+     */
+    public function getEncoding()
+    {
+        return $this->encoding;
+    }
+
+    /**
      * Sets the newext value. Default: css
      *
      * This is the extension we will add on to the output file regardless
@@ -237,6 +293,16 @@ class SassTask extends Task
     public function setNewext($newext)
     {
         $this->newext = trim($newext, ' .');
+    }
+
+    /**
+     * Return extension added to output files.
+     *
+     * @return string
+     */
+    public function getNewext()
+    {
+        return $this->newext;
     }
 
     /**
@@ -256,6 +322,16 @@ class SassTask extends Task
     }
 
     /**
+     * Return the outputpath value.
+     *
+     * @return string
+     */
+    public function getOutputpath()
+    {
+        return $this->outputpath;
+    }
+
+    /**
      * Sets the keepsubdirectories value. Default: true
      *
      * When set to true we will keep the directory structure. So any input
@@ -271,6 +347,16 @@ class SassTask extends Task
     public function setKeepsubdirectories($keepsubdirectories)
     {
         $this->keepsubdirectories = StringHelper::booleanValue($keepsubdirectories);
+    }
+
+    /**
+     * Return keepsubdirectories value.
+     *
+     * @return bool
+     */
+    public function getKeepsubdirectories()
+    {
+        return $this->keepsubdirectories;
     }
 
     /**
@@ -303,6 +389,16 @@ class SassTask extends Task
     }
 
     /**
+     * Indicate if just a syntax check is required.
+     *
+     * @return boolean
+     */
+    public function getCheck()
+    {
+        return $this->check;
+    }
+
+    /**
      * Set style to compact
      *
      * @param string $value Jenkins style boolean value
@@ -317,6 +413,17 @@ class SassTask extends Task
             $this->flags .= ' --style compact';
             $this->style = 'compact';
         }
+    }
+
+    /**
+     * Indicate whether style is set to 'coompact'.
+     *
+     * @return bool
+     * @see    setCompact
+     */
+    public function getCompact()
+    {
+        return $this->style === 'compact';
     }
 
     /**
@@ -337,6 +444,43 @@ class SassTask extends Task
     }
 
     /**
+     * Indicate whether style is set to 'compressed'.
+     *
+     * @return bool
+     * @see    setCompressed
+     */
+    public function getCompressed()
+    {
+        return $this->style === 'compressed';
+    }
+
+    /**
+     * Set style to crunched. Supported by scssphp only.
+     *
+     * @param string $value Jenkins style boolean value
+     *
+     * @return void
+     */
+    public function setCrunched($value)
+    {
+        $compress = StringHelper::booleanValue($value);
+        if ($compress) {
+            $this->style = 'crunched';
+        }
+    }
+
+    /**
+     * Indicate whether style is set to 'crunched'.
+     *
+     * @return bool
+     * @see    setCrunched
+     */
+    public function getCrunched()
+    {
+        return $this->style === 'crunched';
+    }
+
+    /**
      * Set style to expanded
      *
      * @param string $value Jenkins style boolean value
@@ -351,6 +495,45 @@ class SassTask extends Task
             $this->flags .= ' --style expanded';
             $this->style = 'expanded';
         }
+    }
+
+    /**
+     * Indicate whether style is set to 'expanded'.
+     *
+     * @return bool
+     * @see    setExpand
+     */
+    public function getExpand()
+    {
+        return $this->style === 'expanded';
+    }
+
+    /**
+     * Set style to nested
+     *
+     * @param string $value Jenkins style boolean value
+     *
+     * @return void
+     */
+    public function setNested($value)
+    {
+        $nested = StringHelper::booleanValue($value);
+        if ($nested) {
+            $this->flags = str_replace(' --style ' . $this->style, '', $this->flags);
+            $this->flags .= ' --style nested';
+            $this->style = 'nested';
+        }
+    }
+
+    /**
+     * Indicate whether style is set to 'nested'.
+     *
+     * @return bool
+     * @see    setNested
+     */
+    public function getNested()
+    {
+        return $this->style === 'nested';
     }
 
     /**
@@ -372,6 +555,16 @@ class SassTask extends Task
     }
 
     /**
+     * Return force value.
+     *
+     * @return bool
+     */
+    public function getForce()
+    {
+        return $this->force;
+    }
+
+    /**
      * Whether to cache parsed sass files.
      *
      * @param string $value Jenkins style boolean value
@@ -390,6 +583,16 @@ class SassTask extends Task
     }
 
     /**
+     * Return noCache value.
+     *
+     * @return bool
+     */
+    public function getNoCache()
+    {
+        return $this->noCache;
+    }
+
+    /**
      * Specify SASS import path
      *
      * @param string $path Import path.
@@ -399,6 +602,17 @@ class SassTask extends Task
     public function setPath($path)
     {
         $this->flags .= "--load-path $path";
+        $this->loadPath = $path;
+    }
+
+    /**
+     * Return the SASS import path.
+     *
+     * @return string
+     */
+    public function getPath()
+    {
+        return $this->loadPath;
     }
 
     /**
@@ -416,6 +630,7 @@ class SassTask extends Task
         case 'compact':
         case 'compressed':
         case 'expanded':
+        case 'crunched':
             $this->flags = str_replace(" --style $this->style", '', $this->flags);
             $this->style = $style;
             $this->flags .= " --style $style";
@@ -423,6 +638,16 @@ class SassTask extends Task
         default:
             $this->log("Style $style ignored", Project::MSG_INFO);
         }
+    }
+
+    /**
+     * Return style used for generating output.
+     *
+     * @return string
+     */
+    public function getStyle()
+    {
+        return $this->style;
     }
 
     /**
@@ -445,6 +670,16 @@ class SassTask extends Task
     }
 
     /**
+     * Return trace option.
+     *
+     * @return bool
+     */
+    public function getTrace()
+    {
+        return $this->trace;
+    }
+
+    /**
      * Whether to use unix-style newlines.
      *
      * @param string $newlines Jenkins style boolean value
@@ -460,6 +695,82 @@ class SassTask extends Task
         } else {
             $this->flags = str_replace(' --unix-newlines ', '', $this->flags);
         }
+    }
+
+    /**
+     * Return unix-newlines setting
+     *
+     * @return bool
+     */
+    public function getUnixnewlines()
+    {
+        return $this->unixnewlines;
+    }
+
+    /**
+     * Whether to identify source-file and line number for generated CSS.
+     *
+     * @param string $lineNumbers Jenkins style boolean value
+     *
+     * @return void
+     */
+    public function setLineNumbers($lineNumbers)
+    {
+        $lineNumbers = StringHelper::booleanValue($lineNumbers);
+        $this->lineNumbers = $lineNumbers;
+        if ($lineNumbers) {
+            $this->flags .= ' --line-numbers ';
+        } else {
+            $this->flags = str_replace(' --line-numbers ', '', $this->flags);
+        }
+    }
+
+    /**
+     * Return line-numbers setting.
+     *
+     * @return bool
+     */
+    public function getLineNumbers()
+    {
+        return $this->lineNumbers;
+    }
+
+    /**
+     * Whether to use the 'sass' command line tool.
+     *
+     * @param string $value Jenkins style boolean value.
+     *
+     * @return void
+     * @link   http://sass-lang.com/install
+     */
+    public function setUseSass($value)
+    {
+        $this->useSass = StringHelper::booleanValue($value);
+    }
+
+    /**
+     * Whether to use the scssphp compiler.
+     *
+     * @param string $value Jenkins style boolean value.
+     *
+     * @return void
+     * @link   http://leafo.github.io/scssphp/
+     */
+    public function setUseScssphp($value)
+    {
+        $this->useScssphp = StringHelper::booleanValue($value);
+    }
+
+    /**
+     * Set single filename to compile from scss to css.
+     *
+     * @param string $file Single filename to compile.
+     *
+     * @return void
+     */
+    public function setFile($file)
+    {
+        $this->file = $file;
     }
 
     /**
@@ -485,40 +796,71 @@ class SassTask extends Task
      */
     public function main()
     {
-        if (strlen($this->executable) < 0) {
-            throw new BuildException("'executable' must be defined.");
+        if ($this->useSass) {
+            if (strlen($this->executable) < 0) {
+                throw new BuildException("'executable' must be defined.");
+            }
         }
 
-        if (empty($this->filesets)) {
+        if (empty($this->filesets) && $this->file === null) {
             throw new BuildException(
                 "Missing either a nested fileset or attribute 'file'"
             );
         }
 
+        // If both are set to be used, prefer sass over scssphp.
         $useScssphp = false;
-        if (System::which($this->executable) === false) {
-            // make two attempts to load in leafo's SCSS PHP Compiler.
-            $v = @include_once "vendor/leafo/scssphp/scss.inc.php";
-            if ($v === false) {
-                $v = @include_once "scssphp/scss.inc.php";
-            }
-            if ($v === false) {
-                throw new BuildException(
-                    sprintf(
-                        "%s not found. Install sass or leafo.",
+        if ($this->useSass && $this->useScssphp) {
+            if (System::which($this->executable) === false) {
+                if ($this->loadScssphp() === false) {
+                    $msg = sprintf(
+                        "%s not found. Install sass or leafo scssphp.",
                         $this->executable
-                    )
+                    );
+                    if ($this->failonerror) {
+                        throw new BuildException($msg);
+                    } else {
+                        $this->log($msg, Project::MSG_ERR);
+                        return;
+                    }
+                } else {
+                    $useScssphp = true;
+                    $scss = $this->initialiseScssphp();
+                }
+            }
+        } elseif (!$this->useSass && !$this->useScssphp) {
+            $this->log(
+                "Neither sass nor scssphp are to be used.",
+                Project::MSG_ERR
+            );
+            return;
+        } elseif ($this->useSass) {
+            if (System::which($this->executable) === false) {
+                $msg = sprintf(
+                    "%s not found. Install sass.",
+                    $this->executable
                 );
+                if ($this->failonerror) {
+                    throw new BuildException($msg);
+                } else {
+                    $this->log($msg, Project::MSG_ERR);
+                    return;
+                }
+            }
+        } elseif ($this->useScssphp) {
+            if ($this->loadScssphp() === false) {
+                $msg = sprintf(
+                    "Install leafo scssphp."
+                );
+                if ($this->failonerror) {
+                    throw new BuildException($msg);
+                } else {
+                    $this->log($msg, Project::MSG_ERR);
+                    return;
+                }
             } else {
                 $useScssphp = true;
-                $scss = new Leafo\ScssPhp\Compiler();
-                if ($this->style) {
-                    $ucStyle = ucfirst(strtolower($this->style));
-                    $scss->setFormatter('Leafo\\ScssPhp\\Formatter\\' . $ucStyle);
-                }
-                if ($this->encoding) {
-                    $scss->setEncoding($this->encoding);
-                }
+                $scss = $this->initialiseScssphp();
             }
         }
 
@@ -590,7 +932,7 @@ class SassTask extends Task
                                 if ($success) {
                                     $this->log(
                                         sprintf(
-                                            "'%s' compiled and written to '%s'"
+                                            "'%s' compiled and written to '%s'",
                                             $fullFilePath,
                                             $outputFile
                                         ),
@@ -598,7 +940,7 @@ class SassTask extends Task
                                     );
                                 }
                             } else {
-                                $this->log('Compilation resulted in empty string')
+                                $this->log('Compilation resulted in empty string');
                             }
                         } catch (Exception $ex) {
                             if ($this->failonerror) {
@@ -646,12 +988,12 @@ class SassTask extends Task
     /**
      * Executes the command and returns return code and output.
      *
-     * @param string $inputFile Input file
+     * @param string $inputFile  Input file
      * @param string $outputFile Output file
-     * *
-     * @return array array(return code, array with output)
-     * @throws BuildException
+     *
      * @access protected
+     * @throws BuildException
+     * @return array array(return code, array with output)
      */
     protected function executeCommand($inputFile, $outputFile)
     {
@@ -675,5 +1017,43 @@ class SassTask extends Task
         exec($fullCommand, $output, $return);
 
         return [$return, $output];
+    }
+
+    /**
+     * Pull in scssphp package, return true if successful.
+     *
+     * @return bool
+     */
+    public function loadScssphp()
+    {
+        $success = @include_once "vendor/leafo/scssphp/scss.inc.php";
+        if ($success === false) {
+            $success = @include_once "scssphp/scss.inc.php";
+        }
+        return $success;
+    }
+
+    /**
+     * Initialise and return an instance of the ScssPhp Compiler.
+     *
+     * @return Leafo\ScssPhp\Compiler
+     */
+    public function initialiseScssphp()
+    {
+        $scss = new Leafo\ScssPhp\Compiler();
+        if ($this->style) {
+            $ucStyle = ucfirst(strtolower($this->style));
+            $scss->setFormatter('Leafo\\ScssPhp\\Formatter\\' . $ucStyle);
+        }
+        if ($this->encoding) {
+            $scss->setEncoding($this->encoding);
+        }
+        if ($this->lineNumbers) {
+            $scss->setLineNumberStyle(Leafo\ScssPhp\Compiler::LINE_COMMENTS);
+        }
+        if ($this->loadPath !== '') {
+            $scss->setImportPaths(explode(PATH_SEPARATOR, $this->loadPath));
+        }
+        return $scss;
     }
 }
