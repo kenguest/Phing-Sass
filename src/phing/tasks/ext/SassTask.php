@@ -1,6 +1,6 @@
 <?php
 /*
- *  $Id$
+ *  $Id: 20f31530c427e9be3283caf13f026470bcbfc7bb $
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -40,7 +40,7 @@ require_once 'phing/Task.php';
  * @author   Paul Stuart <pstuart2@gmail.com>
  * @author   Ken Guest <kguest@php.net>
  * @license  LGPL (see http://www.gnu.org/licenses/lgpl.html)
- * @version  Release: $Id$
+ * @version  Release: $Id: 20f31530c427e9be3283caf13f026470bcbfc7bb $
  * @link     SassTask.php
  */
 class SassTask extends Task
@@ -91,7 +91,7 @@ class SassTask extends Task
      *
      * @var array
      */
-    protected $filesets = [];
+    protected $filesets = array();
 
     /**
      * Additional flags to pass to sass.
@@ -759,6 +759,13 @@ class SassTask extends Task
     public function setUseScssphp($value)
     {
         $this->useScssphp = StringHelper::booleanValue($value);
+        if (version_compare(PHP_VERSION, '5.2', '<=')) {
+            $this->useScssphp = false;
+            $this->log(
+                "SCSSPHP is incompatible with this version of PHP",
+                Project::MSG_INFO
+            );
+        }
     }
 
     /**
@@ -783,6 +790,13 @@ class SassTask extends Task
     {
         include_once 'System.php';
         @include_once 'vendor/autoload.php';
+        if (version_compare(PHP_VERSION, '5.2', '<=')) {
+            $this->useScssphp = false;
+            $this->log(
+                "SCSSPHP is incompatible with this version of PHP",
+                Project::MSG_INFO
+            );
+        }
     }
 
     /**
@@ -1002,7 +1016,7 @@ class SassTask extends Task
             throw new BuildException('Input file and output file are the same!');
         }
 
-        $output = [];
+        $output = array();
         $return = null;
 
         $fullCommand = $this->executable;
@@ -1016,7 +1030,7 @@ class SassTask extends Task
         $this->log("Executing: {$fullCommand}", Project::MSG_INFO);
         exec($fullCommand, $output, $return);
 
-        return [$return, $output];
+        return array($return, $output);
     }
 
     /**
@@ -1033,6 +1047,17 @@ class SassTask extends Task
         return $success;
     }
 
+    public function getNewCompiler()
+    {
+        $compiler = '\\Leafo\\ScssPhp\\Compiler';
+        $obj = call_user_func_array(
+            array($compiler, '__construct'),
+            array()
+        );
+        var_dump ($obj);
+        return self::$factory;
+    }
+
     /**
      * Initialise and return an instance of the ScssPhp Compiler.
      *
@@ -1040,7 +1065,8 @@ class SassTask extends Task
      */
     public function initialiseScssphp()
     {
-        $scss = new Leafo\ScssPhp\Compiler();
+        //$scss = new Leafo\ScssPhp\Compiler();
+        $scss = $this->getNewCompiler();
         if ($this->style) {
             $ucStyle = ucfirst(strtolower($this->style));
             $scss->setFormatter('Leafo\\ScssPhp\\Formatter\\' . $ucStyle);
@@ -1049,7 +1075,7 @@ class SassTask extends Task
             $scss->setEncoding($this->encoding);
         }
         if ($this->lineNumbers) {
-            $scss->setLineNumberStyle(Leafo\ScssPhp\Compiler::LINE_COMMENTS);
+            $scss->setLineNumberStyle(1);
         }
         if ($this->loadPath !== '') {
             $scss->setImportPaths(explode(PATH_SEPARATOR, $this->loadPath));
